@@ -1,0 +1,10 @@
+# C++ build artifacts
+*.o
+
+# Local executables
+smart_home_app
+*.out
+*.exe
+
+# macOS
+.DS_Store
