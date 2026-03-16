@@ -29,12 +29,18 @@ Light::Light(const std::string& name, const std::string& location, int initialBr
 
 // Turn device on through power interface.
 void Light::turnOn() {
+    if (status) {
+        throw InvalidDeviceStateException("Light is already ON.");
+    }
     status = true;
     printPowerStateMessage(name, status);
 }
 
 // Turn device off through power interface.
 void Light::turnOff() {
+    if (!status) {
+        throw InvalidDeviceStateException("Light is already OFF.");
+    }
     status = false;
     printPowerStateMessage(name, status);
 }

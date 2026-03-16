@@ -29,12 +29,18 @@ TV::TV(const std::string& name, const std::string& location, int initialVolume, 
 
 // Turn device on through power interface.
 void TV::turnOn() {
+    if (status) {
+        throw InvalidDeviceStateException("TV is already ON.");
+    }
     status = true;
     printPowerStateMessage(name, status);
 }
 
 // Turn device off through power interface.
 void TV::turnOff() {
+    if (!status) {
+        throw InvalidDeviceStateException("TV is already OFF.");
+    }
     status = false;
     printPowerStateMessage(name, status);
 }
@@ -50,9 +56,12 @@ void TV::displayStatus() const {
     std::cout << "===============" << std::endl;
 }
 
-// Update volume after clamping to valid range.
+// Reject invalid volume values.
 void TV::setVolume(int volumeLevel) {
-    volume = clampToPercent(volumeLevel);
+    if (volumeLevel < 0 || volumeLevel > 100) {
+        throw InvalidInputException("Volume must be between 0 and 100.");
+    }
+    volume = volumeLevel;
 
     std::cout << name << ": volume set to " << volume << "." << std::endl;
 }

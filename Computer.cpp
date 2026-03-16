@@ -18,13 +18,21 @@ Computer::Computer(const std::string& name, const std::string& location, bool in
 
 // Turn device on through power interface.
 void Computer::turnOn() {
+    if (status) {
+        throw InvalidDeviceStateException("Computer is already ON.");
+    }
     status = true;
     printPowerStateMessage(name, status);
 }
 
 // Turn device off through power interface.
 void Computer::turnOff() {
+    if (!status) {
+        throw InvalidDeviceStateException("Computer is already OFF.");
+    }
     status = false;
+    // Keep network state coherent with power state.
+    isInternetConnected = false;
     printPowerStateMessage(name, status);
 }
 
@@ -43,6 +51,9 @@ void Computer::connectInternet() {
     if (!status) {
         throw InvalidDeviceStateException("Computer must be ON before connecting to the internet.");
     }
+    if (isInternetConnected) {
+        throw InvalidDeviceStateException("Computer is already connected to the internet.");
+    }
 
     isInternetConnected = true;
     std::cout << name << ": connected to the internet." << std::endl;
@@ -50,6 +61,13 @@ void Computer::connectInternet() {
 
 // Explicitly disconnect network.
 void Computer::disconnectInternet() {
+    if (!status) {
+        throw InvalidDeviceStateException("Computer must be ON before disconnecting from the internet.");
+    }
+    if (!isInternetConnected) {
+        throw InvalidDeviceStateException("Computer is not connected to the internet.");
+    }
+
     isInternetConnected = false;
     std::cout << name << ": disconnected from the internet." << std::endl;
 }

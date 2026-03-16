@@ -1,125 +1,68 @@
-# Smart Home Module (PowerInterface + Light/TV/Computer)
+# Smart Home Automation System
 
-## Module Overview
-This module implements the power-device subsystem of a smart home system, including:
-- Abstract base class: `SmartDevice`
-- Interface: `PowerInterface`
-- Concrete devices: `Light`, `TV`, `Computer`
-- Custom exceptions: `InvalidInputException`, `InvalidDeviceStateException`
+## Overview
+This project is a C++ smart home simulation built with object-oriented design. It models smart devices, manages them through a polymorphic container, and demonstrates interfaces, inheritance, runtime polymorphism, and exception handling.
 
-This module already demonstrates inheritance, polymorphism, interface usage, exception throwing/catching, and header/source separation.
+Current architecture:
 
-## File Structure
-- `SmartDevice.h` / `SmartDevice.cpp`: abstract device base type (name, location, power state, status display API)
-- `PowerInterface.h`: power control interface (`turnOn()` / `turnOff()`)
-- `Light.h` / `Light.cpp`: light device (brightness control)
-- `TV.h` / `TV.cpp`: TV device (volume/channel control)
-- `Computer.h` / `Computer.cpp`: computer device (network control)
-- `DeviceExceptions.h` / `DeviceExceptions.cpp`: module exception types
-- `main.cpp`: demo entry point (interface, polymorphism, exceptions)
+`main/menu -> RoomManager -> DeviceManager -> std::vector<std::unique_ptr<SmartDevice>>`
 
-## Module Interface Reference
-### 1) SmartDevice (Abstract Base Class)
-```cpp
-class SmartDevice {
-public:
-    SmartDevice(const std::string& name, const std::string& location);
-    virtual ~SmartDevice();
+Implemented device types:
+- `Light`
+- `TV`
+- `Computer`
 
-    std::string getName() const;
-    std::string getLocation() const;
-    bool getStatus() const;
+## Design Summary
+- `SmartDevice` is the abstract base class for all devices.
+- `PowerInterface` is an interface-like class with pure virtual `turnOn()` and `turnOff()` methods.
+- `Light`, `TV`, and `Computer` inherit from `SmartDevice` and implement `PowerInterface`.
+- `DeviceManager` stores devices polymorphically and performs device-wide or device-specific operations.
+- `RoomManager` provides room-level control on top of `DeviceManager`.
+- Custom exceptions are used for invalid input and invalid device state.
 
-    virtual void displayStatus() const = 0;
-};
-```
-Purpose:
-- Common parent type for polymorphic storage and access in `DeviceManager`.
+## Features
+- Runtime polymorphic status display through `SmartDevice` pointers.
+- Batch power control through `PowerInterface`.
+- Device-specific operations:
+	- `Light`: brightness control
+	- `TV`: volume and channel control
+	- `Computer`: internet connection control
+- Room-based listing and power control.
+- Exception-safe manager wrappers that prevent the program from crashing.
+- Interactive menu in `main.cpp` plus startup demonstration.
 
-### 2) PowerInterface (Interface)
-```cpp
-class PowerInterface {
-public:
-    virtual void turnOn() = 0;
-    virtual void turnOff() = 0;
-    virtual ~PowerInterface() = default;
-};
-```
-Purpose:
-- Unified power-control entry for batch on/off operations.
+## Exception Rules
+- `InvalidInputException`: thrown for invalid values such as brightness, volume, or channel input.
+- `InvalidDeviceStateException`: thrown for invalid state changes such as powering on an already-on device or connecting internet while the computer is off.
 
-### 3) Light
-```cpp
-class Light : public SmartDevice, public PowerInterface {
-public:
-    Light(const std::string& name, const std::string& location, int initialBrightness = 50);
+## Files
+- `SmartDevice.h` / `SmartDevice.cpp`: abstract base class
+- `PowerInterface.h`: power-control interface
+- `Light.h` / `Light.cpp`: light device
+- `TV.h` / `TV.cpp`: TV device
+- `Computer.h` / `Computer.cpp`: computer device
+- `DeviceExceptions.h` / `DeviceExceptions.cpp`: custom exceptions
+- `DeviceManager.h` / `DeviceManager.cpp`: polymorphic device manager
+- `RoomManager.h` / `RoomManager.cpp`: room-level manager
+- `main.cpp`: menu and demonstration
 
-    void turnOn() override;
-    void turnOff() override;
-    void displayStatus() const override;
-
-    void setBrightness(int brightnessLevel);   // [0, 100], throws on invalid input
-    int getBrightness() const;
-};
-```
-
-### 4) TV
-```cpp
-class TV : public SmartDevice, public PowerInterface {
-public:
-    TV(const std::string& name, const std::string& location, int initialVolume = 10, int initialChannel = 1);
-
-    void turnOn() override;
-    void turnOff() override;
-    void displayStatus() const override;
-
-    void setVolume(int volumeLevel);           // auto-clamped to [0, 100]
-    void setChannel(int channelNumber);        // throws if < 1
-    int getVolume() const;
-    int getChannel() const;
-};
-```
-
-### 5) Computer
-```cpp
-class Computer : public SmartDevice, public PowerInterface {
-public:
-    Computer(const std::string& name, const std::string& location, bool internetConnected = false);
-
-    void turnOn() override;
-    void turnOff() override;
-    void displayStatus() const override;
-
-    void connectInternet();                    // throws if device is OFF
-    void disconnectInternet();
-    bool isConnectedToInternet() const;
-};
-```
-
-### 6) Exception Types
-```cpp
-class InvalidInputException : public std::runtime_error {};
-class InvalidDeviceStateException : public std::runtime_error {};
-```
-Recommended catch pattern:
-```cpp
-try {
-    // device operations
-} catch (const InvalidInputException& ex) {
-    // handle invalid input
-} catch (const InvalidDeviceStateException& ex) {
-    // handle invalid state
-}
-```
+## Requirements Covered
+- Multiple classes
+- Inheritance
+- Abstract base class
+- Interface using pure virtual functions
+- Virtual functions and runtime polymorphism
+- Custom exceptions
+- Proper encapsulation
+- Separate header and implementation files
 
 ## Build and Run
 ```bash
-g++ -std=c++17 -Wall -Wextra -pedantic main.cpp SmartDevice.cpp Light.cpp TV.cpp Computer.cpp DeviceExceptions.cpp -o smart_home_app
+g++ -std=c++17 -Wall -Wextra -pedantic *.cpp -o smart_home_app
 ./smart_home_app
 ```
 
-## Integration Notes
-- `DeviceManager` is recommended to store devices as: `std::vector<std::unique_ptr<SmartDevice>>`
-- For unified status display, call: `SmartDevice* -> displayStatus()`
-- For batch power control, call: `PowerInterface* -> turnOn()/turnOff()`
-- Wrap potentially failing operations with `try/catch` to avoid program interruption
+Quick exit test:
+```bash
+printf "0\n" | ./smart_home_app
+```
