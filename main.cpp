@@ -1,156 +1,78 @@
-#include "Computer.h"
 #include "DeviceExceptions.h"
-#include "Light.h"
+#include "Exceptions.h"
 #include "RoomManager.h"
-#include "TV.h"
+
 #include <iostream>
-#include <limits>
-#include <memory>
-#include <string>
+#include <stdexcept>
 
 namespace {
 
-void printMenu() {
-    std::cout << "\n===== Smart Home Menu =====\n";
-    std::cout << "1. List all devices\n";
-    std::cout << "2. List devices in a room\n";
-    std::cout << "3. Turn ON all devices\n";
-    std::cout << "4. Turn OFF all devices\n";
-    std::cout << "5. Turn ON a room\n";
-    std::cout << "6. Turn OFF a room\n";
-    std::cout << "7. Set light brightness\n";
-    std::cout << "8. Set TV channel\n";
-    std::cout << "9. Connect computer internet\n";
-    std::cout << "10. Run exception demo\n";
-    std::cout << "0. Exit\n";
-    std::cout << "Select: ";
+void printSection(const std::string& title) {
+    std::cout << "\n=== " << title << " ===" << std::endl;
 }
 
-void runExceptionDemo() {
-    std::cout << "\n=== Direct Exception Demo ===\n";
+void runDemo() {
+    RoomManager roomManager;
+
+    const int livingRoomId = roomManager.createRoom("Living Room");
+    const int officeId = roomManager.createRoom("Office");
+
+    roomManager.addDeviceToRoom(livingRoomId, DeviceType::Light, "Main Light");
+    roomManager.addDeviceToRoom(livingRoomId, DeviceType::TV, "Family TV");
+    roomManager.addDeviceToRoom(livingRoomId, DeviceType::Door, "Front Door");
+    roomManager.addDeviceToRoom(officeId, DeviceType::Computer, "Workstation");
+    roomManager.addDeviceToRoom(officeId, DeviceType::AC, "Office AC");
+    roomManager.addDeviceToRoom(officeId, DeviceType::Window, "Office Window");
+
+    printSection("Rooms");
+    roomManager.listRooms();
+
+    printSection("Initial Device State");
+    roomManager.listAllDevices();
+
+    printSection("Power On Supported Devices");
+    roomManager.turnOnAll();
+    roomManager.listAllDevices();
+
+    printSection("Room-Specific Operations");
+    roomManager.setLightBrightness(livingRoomId, 0, 75);
+    roomManager.setTvChannel(livingRoomId, 1, 12);
+    roomManager.connectComputerInternet(officeId, 0);
+    roomManager.increaseDeviceTemperature(officeId, 1, 3);
+
+    bool locked = false;
+    roomManager.isDeviceLocked(livingRoomId, 2, locked);
+    std::cout << "Front Door locked: " << (locked ? "Yes" : "No") << std::endl;
+    roomManager.unlockDevice(livingRoomId, 2);
+    roomManager.isDeviceLocked(livingRoomId, 2, locked);
+    std::cout << "Front Door locked after unlock: " << (locked ? "Yes" : "No") << std::endl;
+
+    printSection("Final Device State");
+    roomManager.listAllDevices();
+
+    printSection("Exception Demo");
     try {
-        Light demoLight("Demo Light", "Lab", 50);
-        demoLight.setBrightness(200);
+        roomManager.setTvChannel(livingRoomId, 1, 0);
     } catch (const InvalidInputException& ex) {
         std::cout << "Caught InvalidInputException: " << ex.what() << std::endl;
     }
 
     try {
-        Computer demoComputer("Demo PC", "Lab", false);
-        demoComputer.disconnectInternet();
-    } catch (const InvalidDeviceStateException& ex) {
-        std::cout << "Caught InvalidDeviceStateException: " << ex.what() << std::endl;
+        roomManager.lockDevice(livingRoomId, 2);
+        roomManager.lockDevice(livingRoomId, 2);
+    } catch (const std::runtime_error& ex) {
+        std::cout << "Caught runtime_error: " << ex.what() << std::endl;
     }
-}
-
-void bootstrapDevices(RoomManager& roomManager) {
-    roomManager.addDevice(std::make_unique<Light>("Living Room Light", "Living Room", 70));
-    roomManager.addDevice(std::make_unique<TV>("Bedroom TV", "Bedroom", 20, 5));
-    roomManager.addDevice(std::make_unique<Computer>("Office PC", "Office", false));
-    roomManager.addDevice(std::make_unique<Light>("Kitchen Light", "Kitchen", 40));
 }
 
 }  // namespace
 
 int main() {
-    RoomManager roomManager;
-    bootstrapDevices(roomManager);
-
-    std::cout << "=== Startup Demo (RoomManager -> DeviceManager -> SmartDevice) ===\n";
-    roomManager.turnOnAll();
-    roomManager.listAllDevices();
-    roomManager.connectComputerInternet("Office PC");
-
-    // Manager-level exception handling demo (returns false instead of crashing).
-    if (!roomManager.setTvChannel("Bedroom TV", 0)) {
-        std::cout << "Manager rejected invalid channel request.\n";
-    }
-
-    int choice = -1;
-    while (choice != 0) {
-        printMenu();
-        if (!(std::cin >> choice)) {
-            std::cout << "Invalid input. Exiting menu.\n";
-            break;
-        }
-
-        switch (choice) {
-        case 1:
-            roomManager.listAllDevices();
-            break;
-        case 2: {
-            std::string room;
-            std::cout << "Room name: ";
-            std::cin >> room;
-            roomManager.listDevicesInRoom(room);
-            break;
-        }
-        case 3:
-            roomManager.turnOnAll();
-            break;
-        case 4:
-            roomManager.turnOffAll();
-            break;
-        case 5: {
-            std::string room;
-            std::cout << "Room name: ";
-            std::cin >> room;
-            roomManager.turnOnRoom(room);
-            break;
-        }
-        case 6: {
-            std::string room;
-            std::cout << "Room name: ";
-            std::cin >> room;
-            roomManager.turnOffRoom(room);
-            break;
-        }
-        case 7: {
-            std::string lightName;
-            int level = 0;
-            std::cout << "Light name: ";
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::getline(std::cin, lightName);
-            std::cout << "Brightness [0-100]: ";
-            std::cin >> level;
-            if (!roomManager.setLightBrightness(lightName, level)) {
-                std::cout << "Operation failed. Check name/type/value.\n";
-            }
-            break;
-        }
-        case 8: {
-            std::string tvName;
-            int channel = 0;
-            std::cout << "TV name: ";
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::getline(std::cin, tvName);
-            std::cout << "Channel (>=1): ";
-            std::cin >> channel;
-            if (!roomManager.setTvChannel(tvName, channel)) {
-                std::cout << "Operation failed. Check name/type/value.\n";
-            }
-            break;
-        }
-        case 9: {
-            std::string pcName;
-            std::cout << "Computer name: ";
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::getline(std::cin, pcName);
-            if (!roomManager.connectComputerInternet(pcName)) {
-                std::cout << "Operation failed. Check name/type/state.\n";
-            }
-            break;
-        }
-        case 10:
-            runExceptionDemo();
-            break;
-        case 0:
-            std::cout << "Exiting Smart Home menu.\n";
-            break;
-        default:
-            std::cout << "Unknown option. Try again.\n";
-            break;
-        }
+    try {
+        runDemo();
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal error: " << ex.what() << std::endl;
+        return 1;
     }
 
     return 0;

@@ -24,7 +24,7 @@ void printPowerStateMessage(const std::string& deviceName, bool isOn) {
 
 // Construct light with validated initial brightness.
 Light::Light(const std::string& name, const std::string& location, int initialBrightness)
-    : SmartDevice(name, location), brightness(clampToPercent(initialBrightness)) {
+    : SmartDevice(name, location, DeviceType::Light), brightness(clampToPercent(initialBrightness)) {
 }
 
 // Turn device on through power interface.

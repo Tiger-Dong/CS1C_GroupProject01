@@ -1,5 +1,6 @@
 # C++ build artifacts
 *.o
+build/
 
 # Local executables
 smart_home_app

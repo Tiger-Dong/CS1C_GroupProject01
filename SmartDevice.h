@@ -1,6 +1,7 @@
 #ifndef SMARTDEVICE_H
 #define SMARTDEVICE_H
 
+#include "DeviceType.h"
 #include <string>
 
 // Abstract base type for all smart-home devices.
@@ -10,10 +11,11 @@ protected:
     std::string name;
     std::string location;
     bool status;  // true = ON, false = OFF
+    DeviceType type;
 
 public:
     // Build a generic smart device with default OFF state.
-    SmartDevice(const std::string& name, const std::string& location);
+    SmartDevice(const std::string& name, const std::string& location, DeviceType type);
 
     virtual ~SmartDevice();
 
@@ -23,6 +25,10 @@ public:
     std::string getLocation() const;
 
     bool getStatus() const;
+
+    DeviceType getType() const;
+
+    void printStatus() const;
 
     // Device-specific status view implemented by each derived type.
     virtual void displayStatus() const = 0;

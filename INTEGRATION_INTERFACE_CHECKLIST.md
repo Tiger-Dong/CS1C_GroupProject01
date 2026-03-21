@@ -1,87 +1,96 @@
-# Integration Interface Checklist (for DeviceManager / RoomManager)
+# Integration Interface Checklist
 
-## 1. Capabilities You Can Call Directly
+## 1. Ownership Model
+- `RoomManager` owns `std::vector<Room>`.
+- Each `Room` owns `std::vector<std::unique_ptr<SmartDevice>>`.
+- `DeviceManager` does not own devices. It receives `SmartDevice*` and dispatches through capability interfaces.
+
+## 2. Capability Layers
 ### A. Generic Device Layer (`SmartDevice*`)
-- `getName()`: read device name
-- `getLocation()`: read device location
-- `getStatus()`: read power status (`true/false`)
-- `displayStatus()`: polymorphic status display
+- `getName()`
+- `getLocation()`
+- `getStatus()`
+- `getType()`
+- `printStatus()`
+- `displayStatus()`
 
-Use cases:
-- `DeviceManager::listAllDevices()`
-- `RoomManager::listDevicesInRoom(roomName)`
+### B. Power Layer (`PowerInterface*`)
+- `turnOn()`
+- `turnOff()`
 
-### B. Generic Power Layer (`PowerInterface*`)
-- `turnOn()`: power on
-- `turnOff()`: power off
+Supported by:
+- `Light`
+- `TV`
+- `Computer`
+- `AC`
 
-Use cases:
-- `DeviceManager::turnOnAll()`
-- `RoomManager::turnOffRoom(roomName)`
+### C. Temperature Layer (`TemperatureInterface*`)
+- `increaseTemperature(int)`
+- `decreaseTemperature(int)`
+- `getTemperature()`
 
-### C. Device-Specific Features (downcast as needed)
+Supported by:
+- `AC`
+
+### D. Lock Layer (`LockInterface*`)
+- `lock()`
+- `unlock()`
+- `isLocked()`
+
+Supported by:
+- `Door`
+- `Window`
+
+### E. Device-Specific Features
 - `Light`: `setBrightness(int)` / `getBrightness()`
 - `TV`: `setVolume(int)` / `setChannel(int)` / `getVolume()` / `getChannel()`
 - `Computer`: `connectInternet()` / `disconnectInternet()` / `isConnectedToInternet()`
+- `AC`: `setCooling()` / `setHeating()`
+- `Door` and `Window`: `open()` / `close()`
 
-## 2. Recommended Data Structure
+## 3. Factory Integration
+Recommended creation path:
+
 ```cpp
-// Inside DeviceManager
-std::vector<std::unique_ptr<SmartDevice>> devices;
+auto device = DeviceFactory::createDevice(type, deviceName, roomName);
 ```
 
-### Polymorphic status display
-```cpp
-for (const auto& device : devices) {
-    device->displayStatus();
-}
-```
+This keeps room ownership centralized and ensures `location` is synchronized with the room name.
 
-### Batch power control (interface-driven)
-```cpp
-for (const auto& device : devices) {
-    if (auto* power = dynamic_cast<PowerInterface*>(device.get())) {
-        power->turnOn();
-    }
-}
-```
-
-## 3. Exception Integration Rules
-This module may throw:
+## 4. Exception Rules
+This project may throw:
 - `InvalidInputException`
 - `InvalidDeviceStateException`
+- `AlreadyLockedException`
+- `AlreadyUnlockedException`
+- `CannotOpenLockedException`
 
-Recommended manager-level handling:
+Recommended catch pattern:
+
 ```cpp
 try {
-    // call device operation
+    // room or device operation
 } catch (const InvalidInputException& ex) {
     std::cout << "Input error: " << ex.what() << std::endl;
 } catch (const InvalidDeviceStateException& ex) {
     std::cout << "State error: " << ex.what() << std::endl;
+} catch (const std::runtime_error& ex) {
+    std::cout << "Operation error: " << ex.what() << std::endl;
 }
 ```
 
-## 4. Suggested Manager Wrapper Functions
-- `bool setLightBrightness(const std::string& name, int level)`
-- `bool setTvVolume(const std::string& name, int level)`
-- `bool setTvChannel(const std::string& name, int channel)`
-- `bool connectComputerInternet(const std::string& name)`
-
-Suggested return behavior:
-- `true`: operation succeeded
-- `false`: device not found or type mismatch
-- Invalid input/state: use exceptions to distinguish specific error causes
-
-## 5. RoomManager Integration Notes
-- Use `getLocation()` for room-based filtering
-- Apply batch `turnOn/turnOff` to devices in a room
-- Use `displayStatus()` for room-level status output to avoid duplicate formatting logic
+## 5. Compromise Decisions From The Merge
+- Room ownership now matches the reference repository.
+- Device `location` was kept from the local design because it makes status output clearer.
+- DeviceManager follows the reference repository's capability-dispatch model.
+- The stricter local validation for repeated power and network operations was preserved.
+- The room-management layer and device-management APIs now use camelCase only to avoid duplicated method sets.
 
 ## 6. Pre-Integration Checklist
-- [ ] Headers included: `SmartDevice.h`, `PowerInterface.h`, `Light.h`, `TV.h`, `Computer.h`, `DeviceExceptions.h`
-- [ ] Manager stores devices in a polymorphic `SmartDevice` container
-- [ ] Power operations are called through `PowerInterface`
-- [ ] `dynamic_cast` is used for device-specific features
-- [ ] Exceptions are handled with `try/catch` to prevent crashes
+- [ ] Headers included: `SmartDevice.h`, `DeviceType.h`, `PowerInterface.h`, `TemperatureInterface.h`, `LockInterface.h`
+- [ ] Rooms own devices polymorphically
+- [ ] DeviceManager operates on borrowed `SmartDevice*`
+- [ ] Device creation goes through `DeviceFactory`
+- [ ] Invalid input/state is handled with `try/catch`
+- [ ] Lock-capable devices use `LockInterface`
 - [ ] Invalid input/state cases are covered (e.g., channel < 1, connect internet while OFF)

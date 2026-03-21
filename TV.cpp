@@ -24,7 +24,7 @@ void printPowerStateMessage(const std::string& deviceName, bool isOn) {
 
 // Construct TV with validated initial volume/channel.
 TV::TV(const std::string& name, const std::string& location, int initialVolume, int initialChannel)
-    : SmartDevice(name, location), volume(clampToPercent(initialVolume)), channel(initialChannel < 1 ? 1 : initialChannel) {
+    : SmartDevice(name, location, DeviceType::TV), volume(clampToPercent(initialVolume)), channel(initialChannel < 1 ? 1 : initialChannel) {
 }
 
 // Turn device on through power interface.

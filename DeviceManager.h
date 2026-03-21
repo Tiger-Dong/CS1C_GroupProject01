@@ -2,35 +2,24 @@
 #define DEVICEMANAGER_H
 
 #include "SmartDevice.h"
-#include <memory>
-#include <string>
-#include <vector>
 
-class Light;
-class TV;
-class Computer;
-
-// Central manager for polymorphic smart devices.
 class DeviceManager {
-private:
-    std::vector<std::unique_ptr<SmartDevice>> devices;
-
-    SmartDevice* findDeviceByName(const std::string& name);
-
 public:
-    void addDevice(std::unique_ptr<SmartDevice> device);
+    void turnOn(SmartDevice* device) const;
+    void turnOff(SmartDevice* device) const;
 
-    void listAllDevices() const;
-    void listDevicesInRoom(const std::string& roomName) const;
-    void turnOnAll();
-    void turnOffAll();
-    void turnOnRoom(const std::string& roomName);
-    void turnOffRoom(const std::string& roomName);
+    void increaseTemperature(SmartDevice* device, int amount) const;
+    void decreaseTemperature(SmartDevice* device, int amount) const;
+    int getTemperature(SmartDevice* device) const;
 
-    bool setLightBrightness(const std::string& name, int level);
-    bool setTvVolume(const std::string& name, int level);
-    bool setTvChannel(const std::string& name, int channel);
-    bool connectComputerInternet(const std::string& name);
+    void lock(SmartDevice* device) const;
+    void unlock(SmartDevice* device) const;
+    bool isLocked(SmartDevice* device) const;
+
+    void setLightBrightness(SmartDevice* device, int level) const;
+    void setTvVolume(SmartDevice* device, int level) const;
+    void setTvChannel(SmartDevice* device, int channel) const;
+    void connectComputerInternet(SmartDevice* device) const;
 };
 
 #endif

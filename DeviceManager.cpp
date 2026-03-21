@@ -1,193 +1,127 @@
 #include "DeviceManager.h"
 
 #include "Computer.h"
+#include "LockInterface.h"
 #include "Light.h"
 #include "PowerInterface.h"
+#include "TemperatureInterface.h"
 #include "TV.h"
 #include "DeviceExceptions.h"
 
-#include <iostream>
+namespace {
 
-SmartDevice* DeviceManager::findDeviceByName(const std::string& name) {
-    for (const auto& device : devices) {
-        if (device->getName() == name) {
-            return device.get();
-        }
-    }
-    return nullptr;
-}
-
-void DeviceManager::addDevice(std::unique_ptr<SmartDevice> device) {
+void validateDevicePointer(const SmartDevice* device) {
     if (!device) {
-        return;
-    }
-    devices.push_back(std::move(device));
-}
-
-void DeviceManager::listAllDevices() const {
-    for (const auto& device : devices) {
-        device->displayStatus();
+        throw InvalidDeviceStateException("Device pointer is null.");
     }
 }
 
-void DeviceManager::listDevicesInRoom(const std::string& roomName) const {
-    bool found = false;
-    for (const auto& device : devices) {
-        if (device->getLocation() == roomName) {
-            device->displayStatus();
-            found = true;
-        }
-    }
+}  // namespace
 
-    if (!found) {
-        std::cout << "No devices found in room: " << roomName << std::endl;
+void DeviceManager::turnOn(SmartDevice* device) const {
+    validateDevicePointer(device);
+    auto* power = dynamic_cast<PowerInterface*>(device);
+    if (!power) {
+        throw InvalidDeviceStateException("Device does not support power control.");
     }
+    power->turnOn();
 }
 
-void DeviceManager::turnOnAll() {
-    for (const auto& device : devices) {
-        if (auto* power = dynamic_cast<PowerInterface*>(device.get())) {
-            try {
-                power->turnOn();
-            } catch (const InvalidDeviceStateException& ex) {
-                std::cout << "State error (" << device->getName() << "): " << ex.what() << std::endl;
-            }
-        }
+void DeviceManager::turnOff(SmartDevice* device) const {
+    validateDevicePointer(device);
+    auto* power = dynamic_cast<PowerInterface*>(device);
+    if (!power) {
+        throw InvalidDeviceStateException("Device does not support power control.");
     }
+    power->turnOff();
 }
 
-void DeviceManager::turnOffAll() {
-    for (const auto& device : devices) {
-        if (auto* power = dynamic_cast<PowerInterface*>(device.get())) {
-            try {
-                power->turnOff();
-            } catch (const InvalidDeviceStateException& ex) {
-                std::cout << "State error (" << device->getName() << "): " << ex.what() << std::endl;
-            }
-        }
+void DeviceManager::increaseTemperature(SmartDevice* device, int amount) const {
+    validateDevicePointer(device);
+    auto* temperature = dynamic_cast<TemperatureInterface*>(device);
+    if (!temperature) {
+        throw InvalidDeviceStateException("Device does not support temperature control.");
     }
+    temperature->increaseTemperature(amount);
 }
 
-void DeviceManager::turnOnRoom(const std::string& roomName) {
-    for (const auto& device : devices) {
-        if (device->getLocation() != roomName) {
-            continue;
-        }
-
-        if (auto* power = dynamic_cast<PowerInterface*>(device.get())) {
-            try {
-                power->turnOn();
-            } catch (const InvalidDeviceStateException& ex) {
-                std::cout << "State error (" << device->getName() << "): " << ex.what() << std::endl;
-            }
-        }
+void DeviceManager::decreaseTemperature(SmartDevice* device, int amount) const {
+    validateDevicePointer(device);
+    auto* temperature = dynamic_cast<TemperatureInterface*>(device);
+    if (!temperature) {
+        throw InvalidDeviceStateException("Device does not support temperature control.");
     }
+    temperature->decreaseTemperature(amount);
 }
 
-void DeviceManager::turnOffRoom(const std::string& roomName) {
-    for (const auto& device : devices) {
-        if (device->getLocation() != roomName) {
-            continue;
-        }
-
-        if (auto* power = dynamic_cast<PowerInterface*>(device.get())) {
-            try {
-                power->turnOff();
-            } catch (const InvalidDeviceStateException& ex) {
-                std::cout << "State error (" << device->getName() << "): " << ex.what() << std::endl;
-            }
-        }
+int DeviceManager::getTemperature(SmartDevice* device) const {
+    validateDevicePointer(device);
+    auto* temperature = dynamic_cast<TemperatureInterface*>(device);
+    if (!temperature) {
+        throw InvalidDeviceStateException("Device does not support temperature control.");
     }
+    return temperature->getTemperature();
 }
 
-bool DeviceManager::setLightBrightness(const std::string& name, int level) {
-    SmartDevice* device = findDeviceByName(name);
-    if (!device) {
-        return false;
+void DeviceManager::lock(SmartDevice* device) const {
+    validateDevicePointer(device);
+    auto* lockable = dynamic_cast<LockInterface*>(device);
+    if (!lockable) {
+        throw InvalidDeviceStateException("Device does not support lock control.");
     }
+    lockable->lock();
+}
 
+void DeviceManager::unlock(SmartDevice* device) const {
+    validateDevicePointer(device);
+    auto* lockable = dynamic_cast<LockInterface*>(device);
+    if (!lockable) {
+        throw InvalidDeviceStateException("Device does not support lock control.");
+    }
+    lockable->unlock();
+}
+
+bool DeviceManager::isLocked(SmartDevice* device) const {
+    validateDevicePointer(device);
+    auto* lockable = dynamic_cast<LockInterface*>(device);
+    if (!lockable) {
+        throw InvalidDeviceStateException("Device does not support lock control.");
+    }
+    return lockable->isLocked();
+}
+
+void DeviceManager::setLightBrightness(SmartDevice* device, int level) const {
+    validateDevicePointer(device);
     auto* light = dynamic_cast<Light*>(device);
     if (!light) {
-        return false;
+        throw InvalidDeviceStateException("Device is not a light.");
     }
-
-    try {
-        light->setBrightness(level);
-        return true;
-    } catch (const InvalidInputException& ex) {
-        std::cout << "Input error: " << ex.what() << std::endl;
-    } catch (const InvalidDeviceStateException& ex) {
-        std::cout << "State error: " << ex.what() << std::endl;
-    }
-
-    return false;
+    light->setBrightness(level);
 }
 
-bool DeviceManager::setTvVolume(const std::string& name, int level) {
-    SmartDevice* device = findDeviceByName(name);
-    if (!device) {
-        return false;
-    }
-
+void DeviceManager::setTvVolume(SmartDevice* device, int level) const {
+    validateDevicePointer(device);
     auto* tv = dynamic_cast<TV*>(device);
     if (!tv) {
-        return false;
+        throw InvalidDeviceStateException("Device is not a TV.");
     }
-
-    try {
-        tv->setVolume(level);
-        return true;
-    } catch (const InvalidInputException& ex) {
-        std::cout << "Input error: " << ex.what() << std::endl;
-    } catch (const InvalidDeviceStateException& ex) {
-        std::cout << "State error: " << ex.what() << std::endl;
-    }
-
-    return false;
+    tv->setVolume(level);
 }
 
-bool DeviceManager::setTvChannel(const std::string& name, int channel) {
-    SmartDevice* device = findDeviceByName(name);
-    if (!device) {
-        return false;
-    }
-
+void DeviceManager::setTvChannel(SmartDevice* device, int channel) const {
+    validateDevicePointer(device);
     auto* tv = dynamic_cast<TV*>(device);
     if (!tv) {
-        return false;
+        throw InvalidDeviceStateException("Device is not a TV.");
     }
-
-    try {
-        tv->setChannel(channel);
-        return true;
-    } catch (const InvalidInputException& ex) {
-        std::cout << "Input error: " << ex.what() << std::endl;
-    } catch (const InvalidDeviceStateException& ex) {
-        std::cout << "State error: " << ex.what() << std::endl;
-    }
-
-    return false;
+    tv->setChannel(channel);
 }
 
-bool DeviceManager::connectComputerInternet(const std::string& name) {
-    SmartDevice* device = findDeviceByName(name);
-    if (!device) {
-        return false;
-    }
-
+void DeviceManager::connectComputerInternet(SmartDevice* device) const {
+    validateDevicePointer(device);
     auto* computer = dynamic_cast<Computer*>(device);
     if (!computer) {
-        return false;
+        throw InvalidDeviceStateException("Device is not a computer.");
     }
-
-    try {
-        computer->connectInternet();
-        return true;
-    } catch (const InvalidInputException& ex) {
-        std::cout << "Input error: " << ex.what() << std::endl;
-    } catch (const InvalidDeviceStateException& ex) {
-        std::cout << "State error: " << ex.what() << std::endl;
-    }
-
-    return false;
+    computer->connectInternet();
 }

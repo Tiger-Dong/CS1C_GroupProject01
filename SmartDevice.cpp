@@ -1,8 +1,8 @@
 #include "SmartDevice.h"
 
 // Initialize shared identity and default power state.
-SmartDevice::SmartDevice(const std::string& name, const std::string& location)
-    : name(name), location(location), status(false) {}
+SmartDevice::SmartDevice(const std::string& name, const std::string& location, DeviceType type)
+    : name(name), location(location), status(false), type(type) {}
 
 SmartDevice::~SmartDevice() = default;
 
@@ -19,4 +19,12 @@ std::string SmartDevice::getLocation() const {
 // Return current power status.
 bool SmartDevice::getStatus() const {
     return status;
+}
+
+DeviceType SmartDevice::getType() const {
+    return type;
+}
+
+void SmartDevice::printStatus() const {
+    displayStatus();
 }

@@ -1,6 +1,7 @@
 #ifndef COMPUTER_H
 #define COMPUTER_H
 
+#include "DeviceType.h"
 #include "SmartDevice.h"
 #include "PowerInterface.h"
 #include <string>

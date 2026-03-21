@@ -1,6 +1,7 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
+#include "DeviceType.h"
 #include "SmartDevice.h"
 #include "PowerInterface.h"
 #include <string>

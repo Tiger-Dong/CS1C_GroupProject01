@@ -1,6 +1,7 @@
 #ifndef TV_H
 #define TV_H
 
+#include "DeviceType.h"
 #include "SmartDevice.h"
 #include "PowerInterface.h"
 #include <string>

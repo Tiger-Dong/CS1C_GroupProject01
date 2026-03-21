@@ -13,7 +13,7 @@ void printPowerStateMessage(const std::string& deviceName, bool isOn) {
 
 // Construct computer with initial network state.
 Computer::Computer(const std::string& name, const std::string& location, bool internetConnected)
-    : SmartDevice(name, location), isInternetConnected(internetConnected) {
+    : SmartDevice(name, location, DeviceType::Computer), isInternetConnected(internetConnected) {
 }
 
 // Turn device on through power interface.
